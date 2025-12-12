@@ -51,7 +51,11 @@ private suspend fun ApplicationCall.handleTaskList(store: TaskStore) {
     timed("T0_list", jsMode()) {
         val query = requestedQuery()
         val page = requestedPage()
+        val error = request.queryParameters["error"]
+
         val paginated = paginateTasks(store, query, page)
+        val context = paginated.context + mapOf("error" to error)
+
         val html = renderTemplate("tasks/index.peb", paginated.context)
         respondText(html, ContentType.Text.Html)
     }
@@ -110,7 +114,10 @@ private suspend fun ApplicationCall.handleCreateTaskError(
         val statusHtml = messageStatusFragment(validation.message, isError = true)
         respondTaskArea(paginated, statusHtml)
     } else {
-        response.headers.append("Location", redirectPath(query, 1))
+        val errorMessage = validation.message.encodeURLParameter()
+        val basePath = redirectPath(query, 1)
+        val separator = if (basePath.contains("?")) "&" else "?"
+        response.headers.append("Location", basePath + separator + "error=$errorMessage")
         respond(HttpStatusCode.SeeOther)
     }
 }
@@ -278,11 +285,22 @@ private fun filterStatusFragment(
     query: String,
     total: Int,
 ): String =
-    if (query.isBlank()) {
-        """<div id="status" hx-swap-oob="true" role="status"></div>"""
-    } else {
-        val noun = if (total == 1) "task" else "tasks"
-        """<div id="status" hx-swap-oob="true" role="status">Found $total $noun matching "$query".</div>"""
+    when {
+        query.isBlank() ->
+            """<div id="status" hx-swap-oob="true"></div>"""
+
+        total == 0 ->
+            """<div id="status" hx-swap-oob="true" role="alert">
+                No tasks match "$query".
+                <a href="/tasks">Clear filter</a>
+               </div>"""
+
+        else -> {
+            val noun = if (total == 1) "task" else "tasks"
+            """<div id="status" hx-swap-oob="true" role="status">
+                Found $total $noun matching "$query".
+               </div>"""
+        }
     }
 
 private fun messageStatusFragment(

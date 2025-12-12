@@ -16,6 +16,12 @@
         </p>
     </header>
 
+<!-- Accessible status region; HTMX will replace this with role=status or role=alert -->
+<div aria-live="assertive" aria-atomic="true">
+    <div id="status" role="alert"></div>
+</div>
+
+
     {# Error Summary - Week 8 Lab 2 #}
     {% if error %}
     <div role="alert" aria-live="assertive" class="error-summary" id="error-summary" tabindex="-1">
@@ -46,7 +52,7 @@
                    {% if error == "title" %}aria-invalid="true" aria-describedby="title-hint title-error"{% else %}aria-describedby="title-hint"{% endif %}
                    placeholder="e.g., Buy milk">
 
-            <small id="title-hint">Keep it short and specific.</small>
+            <small id="title-hint">Task titles cannot be empty or contain only spaces</small>
             {% if error == "title" %}
             <p id="title-error" class="error-message">
                 {% if msg == "too_long" %}Title is too long (max 200 characters){% else %}Title is required. Please enter at least one character.{% endif %}
